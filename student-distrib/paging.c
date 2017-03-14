@@ -96,11 +96,9 @@ void enable(uint32_t *pd)
     movl %%eax,%%cr3            \n\
     movl %%cr4,%%eax            \n\
     orl $0x00000010,%%eax       \n\
-    /*enable PSE for 4MB*/
     movl %%eax,%%cr4            \n\
     movl %%cr0,%%eax            \n\
     orl $0x80000001,%%eax       \n\
-    /*enable paging and protected mode*/
     movl %%eax,%%cr0            \n\
     "
                  :

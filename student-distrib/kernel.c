@@ -160,11 +160,11 @@ void entry(unsigned long magic, unsigned long addr)
     i8259_init();
 
     /* Initialize devices, memory, filesystem, enable device interrupts on the
-	   * PIC, any other initialization stuff... */
+	 * PIC, any other initialization stuff... */
     rtc_init();
 
-	  /* Initialize paging */
-	  page_init();
+	 /* Initialize paging */
+	 page_init();
 
      /* Enable interrupts */
      /* Do not enable the following until after you have set up your
@@ -182,7 +182,7 @@ void entry(unsigned long magic, unsigned long addr)
     enable_irq(RTC_IRQ);
 
     /* dereferencing NULL pointer */
-//	  int *b=NULL;
+//	 int *b=NULL;
 //	  printf("%d\n",*b);
 
     /* divide by zero */

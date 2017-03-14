@@ -269,5 +269,6 @@ void Interrupt_40()
 void Interrupt_128()
 {
     printf("System Call!\n");
+    system_call();
     while(1);
 }
