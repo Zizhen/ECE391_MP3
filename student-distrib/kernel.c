@@ -179,7 +179,7 @@ void entry(unsigned long magic, unsigned long addr)
     /* enable key board interrupt */
     enable_irq(KEYBOARD_IRQ);
     /* enable rtc interrupt */
-    enable_irq(RTC_IRQ);
+    //enable_irq(RTC_IRQ);
 
     /* dereferencing NULL pointer */
 //	 int *b=NULL;
