@@ -6,6 +6,7 @@
 #include "keyScan2ascii.h"
 #include "terminal.h"
 #define CLEAN 0xFF
+#define BACKSPACE 0x08
 
 /*  void Interrupt()
  *    DESCRIPTION: interrtup
@@ -254,10 +255,13 @@ void Interrupt_33()
     if(in == CLEAN)
       clean_screen();
 
-    if (in != NULL)
-    {
-        printf("%c", in);
-    }
+    else if(in == BACKSPACE)
+      delete_char();
+
+    else if(in != NULL)
+      type(in);
+
+
     send_eoi(KEYBOARD_IRQ_NUM);
 }
 

@@ -1,9 +1,9 @@
 /* handling keyboard interrupt
  * get the correct character from corresponding scan value */
 
-#define ASM 1
+//#define ASM 1
 #include "keyScan2ascii.h"
-
+#include "lib.h"
 #define ARRAY_LEN 256
 #define NULL 0
 #define CAPS_LOCK 0x3A
@@ -16,9 +16,10 @@
 #define S_QUOTATION 39
 #define BACKSLASH 92
 #define SPACE 32
-#define LEFT_CTRL 0x1D
 #define L 0x26
+#define LEFT_CTRL 0x1D
 #define CTRL_RELEASE 0x9D
+#define BACKSPACE_PRESS 0x0E
 #define CLEAN 0XFF
 
 int caps_flag = 0;
@@ -46,7 +47,7 @@ static char k2a_arr[ARRAY_LEN] = {
  */
 #define Lower_to_Upper 32
 #define KEY_RELEASE 0x58
-unsigned char scan2ascii(int scan)
+unsigned char scan2ascii(char scan)
 {
     char ascii;
     if (scan == CAPS_LOCK)  // check if caps lock key is pressed
@@ -60,14 +61,21 @@ unsigned char scan2ascii(int scan)
             caps_flag = 1;
         }
     }
-    if(scan == LEFT_CTRL)
+    if(scan == LEFT_CTRL){
       ctrl_flag = 1;
+      // putc(LEFT_CTRL);
+    }
 
-    else if(scan == CTRL_RELEASE)
+    else if(scan == CTRL_RELEASE){
       ctrl_flag = 0;
+      // putc(CTRL_RELEASE);
+    }
 
     if(scan == L && ctrl_flag == 1)
       return CLEAN;
+
+    if(scan == BACKSPACE_PRESS)
+      return BACKSPACE;
 
     if (scan > KEY_RELEASE) // if the number is larger than 0x58, it means release
     {

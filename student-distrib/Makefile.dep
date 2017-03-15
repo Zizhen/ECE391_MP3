@@ -8,7 +8,7 @@ IRQ_handler.o: IRQ_handler.c IRQ_handler.h i8259.h types.h lib.h \
   keyScan2ascii.h terminal.h
 kernel.o: kernel.c multiboot.h types.h x86_desc.h lib.h i8259.h debug.h \
   idt_init.h rtc.h paging.h
-keyScan2ascii.o: keyScan2ascii.c keyScan2ascii.h
+keyScan2ascii.o: keyScan2ascii.c keyScan2ascii.h lib.h types.h
 lib.o: lib.c lib.h types.h
 paging.o: paging.c paging.h lib.h types.h
 rtc.o: rtc.c rtc.h lib.h types.h

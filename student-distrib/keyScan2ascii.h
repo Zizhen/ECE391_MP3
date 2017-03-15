@@ -2,7 +2,7 @@
 #define _KEYSCAN2ASCII
 #ifndef ASM
 
-extern char scan2ascii(char scan);
+extern unsigned char scan2ascii(char scan);
 
 #endif
 #endif
