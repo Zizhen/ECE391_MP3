@@ -7,6 +7,8 @@
 #include "terminal.h"
 #define CLEAN 0xFF
 #define BACKSPACE 0x08
+#define NEWLINE 10
+
 
 /*  void Interrupt()
  *    DESCRIPTION: interrtup
@@ -257,6 +259,10 @@ void Interrupt_33()
 
     else if(in == BACKSPACE)
       delete_char();
+
+    // else if(in == NEWLINE){
+    //   scroll();
+    // }
 
     else if(in != NULL)
       type(in);
