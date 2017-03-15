@@ -4,7 +4,9 @@
 #include "i8259.h"
 #include "lib.h"
 #include "keyScan2ascii.h"
-#define LEFT_CTRL 0x1D
+#include "terminal.h"
+#define CLEAN 0xFF
+
 /*  void Interrupt()
  *    DESCRIPTION: interrtup
  *  input /output : none */
@@ -247,14 +249,11 @@ void Interrupt_32()
  *  input /output : none */
 void Interrupt_33()
 {
-    char in = scan2ascii(inb(KEYBOARD_PORT));
-    while(scan2ascii(inb(KEYBOARD_PORT)) == LEFT_CTRL){
-      char second = scan2ascii(inb(KEYBOARD_PORT));
-      if(second == 0x26){
-        clear();
-        break;
-      }
-    }
+    unsigned char in = scan2ascii(inb(KEYBOARD_PORT));
+
+    if(in == CLEAN)
+      clean_screen();
+
     if (in != NULL)
     {
         printf("%c", in);
