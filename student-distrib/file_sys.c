@@ -6,11 +6,11 @@ boot_block_t* boot_block;
  *  input: file_name
  *         directory entry
  *  output: directory entry written with the file name
- *          file type and inode_num
+ *          file type and num_inode
  *  return: -1 on failure(non existent dile or invalid index)
  *          0 on success
  */
-int32_t read_dentry_by_name(const uint8_t* fname, dentry_t* dentry){
+int32_t read_dentry_by_name(const int8_t* fname, dentry_t* dentry){
   int i,j;
   int num_chars;
   if(fname == NULL || dentry == NULL){
@@ -28,10 +28,10 @@ int32_t read_dentry_by_name(const uint8_t* fname, dentry_t* dentry){
   for(i = 0; i < 63; i ++){
       if(strncmp(fname,boot_block->dentry[i].file_name,32) == 0){
         for(j = 0; j < 32; j++){
-          dentry->file_name[j] = boot_block->dentry[i].filename[j];
+          dentry->file_name[j] = boot_block->dentry[i].file_name[j];
         }
         dentry->file_type = boot_block->dentry[i].file_type;
-        dentry->inode_num = boot_block->dentry[i].inode_num;
+        dentry->num_inode = boot_block->dentry[i].num_inode;
         return 0;
       }
   }
@@ -43,7 +43,7 @@ int32_t read_dentry_by_name(const uint8_t* fname, dentry_t* dentry){
  *  input: index
  *         directory entry
  *  output: directory entry written with the file name
- *          file type and inode_num
+ *          file type and num_inode
  *  return: -1 on failure(non existent dile or invalid index)
  *          0 on success
  */
@@ -60,10 +60,10 @@ int32_t read_dentry_by_index (uint32_t index, dentry_t* dentry){
   }
 
   for(i = 0; i < 32; i++){
-    dentry->file_name[i] = boot_block->dentry[index].filename[i];
+    dentry->file_name[i] = boot_block->dentry[index].file_name[i];
   }
   dentry->file_type = boot_block->dentry[index].file_type;
-  dentry->inode_num = boot_block->dentry[index].inode_num;
+  dentry->num_inode = boot_block->dentry[index].num_inode;
   return 0;
 }
 
@@ -73,14 +73,14 @@ int32_t read_dentry_by_index (uint32_t index, dentry_t* dentry){
  *         buffer -- place the bytes read there
  *         length -- num of bytes to read
  *  output: directory entry written with the file name
- *          file type and inode_num
+ *          file type and num_inode
  *  return: -1 on failure(non existent dile or invalid index)
  *          0 on success
  */
 int32_t read_data (uint32_t inode, uint32_t offset, uint8_t* buf, uint32_t length){
   int i,j,copy_index;
   inode_t *inode_addr = (inode_t *)(boot_block+inode+1);
-  uint8_t *data_start = (uint8_t *)(boot_block+boot_block->inode_num+1);
+  uint8_t *data_start = (uint8_t *)(boot_block+boot_block->num_inode+1);
   uint8_t *data;
   if(buf == NULL){
     return -1;
@@ -90,17 +90,15 @@ int32_t read_data (uint32_t inode, uint32_t offset, uint8_t* buf, uint32_t lengt
   for(copy_index = 0; copy_index < length; copy_index++){
     if(inode_addr->data_block[i]>boot_block->num_data_block){
       printf("invalid block num!\n");
-      return -1
+      return -1;
     }
     data = data_start + inode_addr->data_block[i]*KB4;
     *(buf+copy_index) = *(data+j);
-    j++
+    j++;
     if(j>KB4){
       j = 0;
       i++;
     }
   }
-
   return copy_index;
-
 }

@@ -5,6 +5,7 @@
 #include "lib.h"
 #include "keyScan2ascii.h"
 #include "terminal.h"
+#include "rtc.h"
 #define CLEAN 0xFF
 #define BACKSPACE 0x08
 #define NEWLINE 10
@@ -278,6 +279,7 @@ void Interrupt_40()
 {
     outb(REGISTER_C, REGISTER_SELECT);
     inb(REGISTER_RW);
+    rtc_interrupt_occured = 1;
     test_interrupts();
     send_eoi(RTC_IRQ_NUM);
 }

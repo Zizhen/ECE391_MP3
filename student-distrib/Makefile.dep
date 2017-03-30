@@ -1,15 +1,16 @@
 boot.o: boot.S multiboot.h x86_desc.h types.h
 IRQ.o: IRQ.S IRQ.h IRQ_handler.h
 x86_desc.o: x86_desc.S x86_desc.h types.h
+file_sys.o: file_sys.c file_sys.h types.h lib.h
 i8259.o: i8259.c i8259.h types.h lib.h
 idt_init.o: idt_init.c idt_init.h x86_desc.h types.h lib.h i8259.h \
   debug.h IRQ.h IRQ_handler.h
 IRQ_handler.o: IRQ_handler.c IRQ_handler.h i8259.h types.h lib.h \
-  keyScan2ascii.h terminal.h
+  keyScan2ascii.h terminal.h rtc.h
 kernel.o: kernel.c multiboot.h types.h x86_desc.h lib.h i8259.h debug.h \
-  idt_init.h rtc.h paging.h
+  idt_init.h rtc.h paging.h file_sys.h
 keyScan2ascii.o: keyScan2ascii.c keyScan2ascii.h lib.h types.h
 lib.o: lib.c lib.h types.h
 paging.o: paging.c paging.h lib.h types.h
-rtc.o: rtc.c rtc.h lib.h types.h
+rtc.o: rtc.c lib.h types.h rtc.h
 terminal.o: terminal.c terminal.h lib.h types.h
