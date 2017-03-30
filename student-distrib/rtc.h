@@ -8,15 +8,23 @@
 #define RTC_RATE 15
 #define PERIODIC_INTERRUPT_MASK 0x40
 #define RATE_MASK 0xf0
-volatile int rtc_interrupt_occured;
+#define RTC_CYCLE_PER_SEC 32768
 
 #ifndef ASM
 /* function to enable rtc */
 extern void rtc_init();
-extern int rtc_open();
+
+extern int rtc_write(int frequency);
+
+//extern int32_t rtc_write(int frequency);
+
 extern int rtc_read();
-extern int rtc_write();
+
+extern int rtc_open();
+
 extern int rtc_close();
+
+extern volatile int rtc_interrupt_occured;
 
 #endif
 #endif

@@ -1,11 +1,23 @@
 /* rtc.c - function to initialize the rtc interrupt */
 #include "lib.h"
-//#define ASM 1
-#include "rtc.h"
-static int frequency_valid(int frequency);
 
+#define ASM 1
+#include "rtc.h"
+
+#define BASE_RATE 15
+#define SUCCESS 0
+#define FAILURE -1
+#define MIN_FREQ 2
+#define MAX_FREQ 1024
+#define INVALID 0
+#define VALID 1
+#define BIT_MASK 0xf0
+
+static int frequency_VALID(int frequency);
+volatile int rtc_interrupt_occured;
+//static int current_frequency=2;
 /*
- *  int rtc_init()
+ *  void rtc_init()
  *    DESCRIPTION:
  *      initialize the rtc
  *    INPUTS:
@@ -24,103 +36,171 @@ void rtc_init()
     outb(prev | PERIODIC_INTERRUPT_MASK, REGISTER_RW);
 
     /* set the interrupt rate to 2Hz */
-    int rate = RTC_RATE;
+    int rate = BASE_RATE;
     outb(REGISTER_A, REGISTER_SELECT);
     prev = inb(REGISTER_RW);
     outb(REGISTER_A, REGISTER_SELECT);
     outb((prev & RATE_MASK) | rate, REGISTER_RW);
 }
 
-/*
- *  int rtc_open()
+/*   int32_t rtc_open(const uint8_t* filename)
  *    DESCRIPTION:
- *      open rtc, set freq to 2Hz
+ *      calls the rtc init function that initialize thertc
  *    INPUTS:
  *      none
  *    OUTPUTS:
- *      none
+ *      always return 0
  *    SIDE EFFECTS:
- *      reopen the rtc to 2Hz
+ *      none
  */
-int rtc_open(){
-    cli();
+int rtc_open()
+{
     /* set the interrupt rate to 2Hz */
-    int rate = RTC_RATE;
+    cli();
+    int rate = BASE_RATE;
+    char prev;
     outb(REGISTER_A, REGISTER_SELECT);
-    char prev = inb(REGISTER_RW);
+    prev = inb(REGISTER_RW);
     outb(REGISTER_A, REGISTER_SELECT);
     outb((prev & RATE_MASK) | rate, REGISTER_RW);
     sti();
-    return 0;
+    return SUCCESS;
 }
 
-/*
- *  int rtc_read()
+/*   iint32_t rtc_close (int32_t fd)
  *    DESCRIPTION:
- *      open rtc, set freq to 2Hz
+ *      does nothing since no file was open  
  *    INPUTS:
  *      none
  *    OUTPUTS:
- *      none
+ *      returns 0 
  *    SIDE EFFECTS:
- *      reopen the rtc to 2Hz
+ *      none
  */
-int rtc_read(){
-    rtc_interrupt_occured = 0;
+int rtc_close()
+{
+    return SUCCESS;
+}
 
-    while(rtc_interrupt_occured)
-      rtc_interrupt_occured = 0;
+/*   int32_t rtc_read(int32_t fd, void* buf, int32_t nbytes)
+ *    DESCRIPTION:
+ *      always sets an interrupt flag and returns 0 when flag cleared
+ *    INPUTS:
+ *      none
+ *    RETURN:
+ *      always returns 0 
+ *    SIDE EFFECTS:
+ *      none
+ */
+int rtc_read()
+{
+	rtc_interrupt_occured = 0;
+    while(!rtc_interrupt_occured);
+    rtc_interrupt_occured=0;
+    return SUCCESS;
+}
 
-    return 0;
+/*   int32_t rtc_write(int32_t fd, const void* buf, int32_t nbytes)
+ *    DESCRIPTION:
+ *      set the rtc frequency to specific rate
+ *    INPUTS:
+ *      void * buf - pointer to the frequency
+ *    OUTPUTS:
+ *      0 for success
+ *      -1 for FAILURE
+ *    SIDE EFFECTS:
+ *      modifies the periodic interrupt rate
+ */
+int rtc_write(int frequency)
+{
+    int i = RTC_CYCLE_PER_SEC/frequency;
+    int rate;
+    char prev;
+
+    // check VALIDity of input
+    if(!frequency_VALID(frequency))
+    {
+        return FAILURE;
+    }
+
+    // convert frequency to rate
+    for(rate=0;i>0;rate++)
+    {
+        i=i>>1;
+    }
+
+    // write the frequency
+    cli();
+    outb(REGISTER_A, REGISTER_SELECT);
+    prev = inb(REGISTER_RW)&BIT_MASK;
+    outb(REGISTER_A, REGISTER_SELECT);
+    outb((prev & RATE_MASK) | rate, REGISTER_RW);
+    sti();
+    return SUCCESS;
 }
 
 /*
- *  int rtc_write()
- *    DESCRIPTION:
- *      set freq to input
- *    INPUTS:
- *      input
- *    OUTPUTS:
- *      none
- *    SIDE EFFECTS:
- *      set rtc to input Hz
- */
-int rtc_write(int input){
-  if(!frequency_valid(input)){
-    return -1;
-  }
-  int rate = 32768 >> (input-1);
-  outb(REGISTER_A, REGISTER_SELECT);
-  int prev = inb(REGISTER_RW);
-  outb(REGISTER_A, REGISTER_SELECT);
-  outb((prev & RATE_MASK) | rate, REGISTER_RW);
-  return 0;
-}
-
-int rtc_close(){
+int rtc_read(int frequency)
+{
+    int cur_freq=current_frequency;
+    while(cur_freq/frequency>=1)
+    {
+        while(!rtc_interrupt_occured);
+        cur_freq=cur_freq>>1;
+    }
+    rtc_interrupt_occured=0;
     return 0;
 }
+*/
 
-/*   int frequency_valid (int frequency)
+/*
+int rtc_write(int frequency)
+{
+    int i = 32768/frequency;
+    int rate;
+    char prev;
+    if(!frequency_VALID(frequency))
+    {
+        return -1;
+    }
+    if(frequency>current_frequency)
+    {
+      current_frequency=frequency;
+      for(rate=0;i>0;rate++)
+      {
+          i=i>>1;
+      }
+      cli();
+      outb(REGISTER_A, REGISTER_SELECT);
+      prev = inb(REGISTER_RW)&0xf0;
+      outb(REGISTER_A, REGISTER_SELECT);
+      outb((prev & RATE_MASK) | rate, REGISTER_RW);
+      sti();
+    }
+    return 0;
+}
+*/
+
+/*   int frequency_VALID (int frequency)
  *   DESCRIPTION:
- *     helper function to determine whether a frequency to write is valid (<= 1024 && power of 2)
+ *     helper function to determine whether a frequency to write is VALID (<= 1024 && power of 2) 
  *   INPUTS:
  *      int frequency - the frequency to be written
  *   OUTPUTS:
- *      0 on failure
- *      1 on success
+ *      0 on FAILURE 
+ *      1 on success   
  *   SIDE EFFECTS:
  *      none
  */
-int frequency_valid(int frequency)
+int frequency_VALID(int frequency)
 {
     int i,count;
     count = 0;              // number of 1s in binary form
 
     // check frequency range
-    if(frequency>1024||frequency<2)
+    if(frequency>MAX_FREQ||frequency<MIN_FREQ)
     {
-        return 0;
+        return INVALID;
     }
 
     // count the number of 1s in the binary form of freq
@@ -135,7 +215,7 @@ int frequency_valid(int frequency)
     // if more than one 1s, it's not a power of 2
     if(count>1)
     {
-        return 0;
+        return INVALID;
     }
-    return 1;
+    return VALID;
 }

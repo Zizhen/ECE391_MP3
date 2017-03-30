@@ -239,7 +239,7 @@ IntHandler_40:
     iret
 
 IntHandler_128:
-    pushal   #check under control of debugger
+    pushal
     cld
     call Interrupt_128
     popal

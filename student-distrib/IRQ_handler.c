@@ -3,13 +3,10 @@
 #include "IRQ_handler.h"
 #include "i8259.h"
 #include "lib.h"
-#include "keyScan2ascii.h"
+#include "keyboard.h"
 #include "terminal.h"
 #include "rtc.h"
-#define CLEAN 0xFF
-#define BACKSPACE 0x08
-#define NEWLINE 10
-
+#include "mp3_2_test.h"
 
 /*  void Interrupt()
  *    DESCRIPTION: interrtup
@@ -251,23 +248,36 @@ void Interrupt_32()
 /*  void Interrupt_33()
  *    DESCRIPTION: keyboard interrupt
  *  input /output : none */
+#define L_FILE 257
+#define R_FILE_NAME 258
+#define R_FILE_INDEX 259
+#define rtc_t 260
+#define rtc_t_finish 261
 void Interrupt_33()
 {
-    unsigned char in = scan2ascii(inb(KEYBOARD_PORT));
+    int in = keyboard_read(inb(KEYBOARD_PORT));
 
-    if(in == CLEAN)
-      clean_screen();
-
-    else if(in == BACKSPACE)
-      delete_char();
-
-    // else if(in == NEWLINE){
-    //   scroll();
-    // }
-
-    else if(in != NULL)
-      type(in);
-
+	/* test cases */
+    if(in == L_FILE)
+    {
+        list_file();
+    }
+    else if(in == R_FILE_NAME)
+    {
+        read_file_by_name();
+    }
+    else if(in == R_FILE_INDEX)
+    {
+        read_file_by_index();
+    }
+    else if(in == rtc_t)
+    {
+        rtc_test();
+    }
+    else if(in == rtc_t_finish)
+    {
+        rtc_test_finished();
+    }
 
     send_eoi(KEYBOARD_IRQ_NUM);
 }
@@ -279,8 +289,8 @@ void Interrupt_40()
 {
     outb(REGISTER_C, REGISTER_SELECT);
     inb(REGISTER_RW);
-    rtc_interrupt_occured = 1;
-    test_interrupts();
+    putc('a');
+    rtc_interrupt_occured=1;
     send_eoi(RTC_IRQ_NUM);
 }
 

@@ -6,6 +6,7 @@
 #define DISABLE 0
 #define PAGE_LARGE 1
 #define PAGE_SMALL 0
+#define VIDEO 0x000b8000
 #define PAGE_SIZE 1024
 #define KB4 4096
 #define NOT_PRESENT 0

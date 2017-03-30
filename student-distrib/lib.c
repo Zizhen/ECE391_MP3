@@ -3,12 +3,76 @@
  */
 
 #include "lib.h"
-char *video_mem  = (char *)VIDEO;
+#define VIDEO 0xB8000
+#define NUM_COLS 80
+#define NUM_ROWS 25
+#define ATTRIB 0x7
+#define CURSOR_HIGH 0x000E
+#define CURSOR_LOW 0x000F
+
+static int screen_x;
+static int screen_y;
+static char *video_mem = (char *)VIDEO;
 
 void reset_screen_pos()
 {
     screen_x = 0;
     screen_y = 0;
+    set_cursor(screen_x,screen_y);
+}
+
+void clear_char()
+
+{
+    if(screen_x==0&&screen_y==0)
+    {
+        return;
+    }
+
+    screen_x--;
+    if(screen_x<0)
+    {
+        screen_x=NUM_COLS-1;
+        screen_y--;
+    }
+    *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1)) = ' ';
+    *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1)+1) = ATTRIB;
+    set_cursor(screen_x,screen_y);
+}
+
+void scrolling()
+{
+    int i=0;
+    screen_x=0;
+    memcpy(video_mem,video_mem+((NUM_COLS)<<1),NUM_COLS*(NUM_ROWS-1)*2);
+    /*
+    if(c!=10)
+    {
+        *(uint8_t *)(video_mem+((NUM_COLS * (NUM_ROWS-1))<<1))=c;
+        i++;
+        screen_x++;
+    }
+    */
+    for(;i<NUM_COLS;i++)
+    {
+        *(uint8_t *)(video_mem+((NUM_COLS * (NUM_ROWS-1) + i)<<1))=' ';
+        *(uint8_t *)(video_mem+((NUM_COLS * (NUM_ROWS-1) + i)<<1)+1)=ATTRIB;
+    }
+    screen_y=NUM_ROWS-1;
+    set_cursor(screen_x,screen_y);
+}
+
+void set_cursor(int x,int y)
+{
+    int offset;
+    int16_t high_addr,low_addr;
+    offset=x+y*NUM_COLS;
+    high_addr=(offset&0xff00)|CURSOR_HIGH;
+    low_addr=((offset&0x00ff)<<8)|CURSOR_LOW;
+    outw(0x0011,0x03d4);
+    outw(0x000A,0x03d4);
+    outw(high_addr,0x03d4);
+    outw(low_addr,0x03d4);
 }
 
 /*
@@ -195,19 +259,32 @@ puts(int8_t *s)
 
 void putc(uint8_t c)
 {
+
     if (c == '\n' || c == '\r')
     {
-	screen_y++;
-	screen_x = 0;
+	    screen_y++;
+	    screen_x = 0;
+        if(screen_y>=NUM_ROWS)
+        {
+            scrolling();
+        }
     }
     else
     {
-	*(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1)) = c;
-	*(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1) + 1) = ATTRIB;
-	screen_x++;
-	screen_x %= NUM_COLS;
-	screen_y = (screen_y + (screen_x / NUM_COLS)) % NUM_ROWS;
+        *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1)) = c;
+	    *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1) + 1) = ATTRIB;
+	    screen_x++;
+        if(screen_x>=NUM_COLS)
+        {
+            screen_x=0;
+            screen_y++;
+        }
     }
+    if(screen_y>=NUM_ROWS)
+    {
+        scrolling();
+    }
+    set_cursor(screen_x,screen_y);
 }
 
 /*

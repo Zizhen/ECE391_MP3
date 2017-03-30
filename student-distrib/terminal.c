@@ -1,79 +1,97 @@
 #include "terminal.h"
-#include "lib.h"
-#define BUFFER_LEN 128
-#define NEWLINE 10
-char buffer[BUFFER_LEN];
 
-int buffer_ptr = 0;
+#define LIMIT 128
+#define STARTING_POINT 0
+#define SUCCESS 0
+#define NEW_LINE 10
 
-void clean_screen(){
-  clear();
-  reset_screen_pos();
+
+unsigned char buffer[LIMIT];
+int index=STARTING_POINT;
+
+/*
+ *  int terminal_open()
+ *    DESCRIPTION:
+ *      open terminal
+ *    INPUTS:
+ *      none
+ *    OUTPUTS:
+ *      none
+ *    Return value : 0 for success
+ */
+int terminal_open()
+{
+    return SUCCESS;
 }
 
-void delete_char(){
-  if(screen_x == 0 && screen_y == 0)
-    return;
-  if(buffer_ptr > 0){
-    if(screen_x == 0){      //back to the line above
-      screen_y--;
-      screen_x = NUM_COLS-1;
-    }
-    else{
-      screen_x --;
-    }
-    *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1)) = ' ';
-    *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1)+1) = ATTRIB;
-    buffer_ptr--;
-  }
+/*
+ *  int terminal_close()
+ *    DESCRIPTION:
+ *      close terminal
+ *    INPUTS:
+ *      none
+ *    OUTPUTS:
+ *      none
+ *    RETURN:
+ *      0 for success
+ */
+int terminal_close()
+{
+    return SUCCESS;
 }
 
-void scroll(){
-  int i;
-  memcpy(video_mem, video_mem+NUM_COLS*2, NUM_COLS*(NUM_ROWS-1)*2);
-  for(i = 0; i < NUM_COLS; i++){
-    *(uint8_t *)(video_mem + NUM_COLS*(NUM_ROWS-1)*2 + (i << 1)) = ' ';
-    *(uint8_t *)(video_mem + NUM_COLS*(NUM_ROWS-1)*2 + (i << 1) + 1) = ATTRIB;
-  }
-  // printf("x: %d\n", screen_x);
-  // printf("y: %d\n", screen_y);
-  screen_x = 0;
-  screen_y = NUM_ROWS-1;
-
+/*
+ *  int terminal_write(unsigned char *c,int length)
+ *    DESCRIPTION:
+ *      write a char to terminal for it to be displayed immediately
+ *    INPUTS:
+ *      unsigned char *c - the data to be written to terminal
+ *      int length - length of the data
+ *    OUTPUTS:
+ *      none
+ *    RETURN:
+ *      0 for success
+ *    SIDE EFFECT:
+ *      display character to terminal
+ */
+int terminal_write(unsigned char *c,int length)
+{
+    int i;
+    cli();
+    for(i=STARTING_POINT;i<length;i++)
+    {
+        putc(*(c+i));  //output character to terminal
+    }
+    sti();
+    return SUCCESS;
 }
 
-void type(unsigned char input){
-  if(buffer_ptr < BUFFER_LEN){
-    if(input == NEWLINE){           //ENTER is pressed
-      clear_buffer();
-      if(screen_y == (NUM_ROWS-1))
-        scroll();
-      else{
-        screen_x = 0;
-        screen_y ++;
-      }
-    }
-    else if(screen_x==79){          //at the end of a line
-      buffer[buffer_ptr] = NEWLINE;
-      buffer_ptr++;
-      if(screen_y == (NUM_ROWS-1))
-        scroll();
-      else{
-        screen_x = 0;
-        screen_y ++;
-      }
-      buffer[buffer_ptr] = input;
-      printf("%c", input);
-      buffer_ptr++;
-    }
-    else{                           //normal typing
-      buffer[buffer_ptr] = input;
-      printf("%c", input);
-      buffer_ptr++;
-    }
-  }
-}
+/*
+ *	int terminal_read(unsigned char *ret_buf,int length)
+ *    DESCRIPTION:
+ *      read from terminal until a newline char is met
+ *      or maximum buffer size reached
+ *    INPUTS:
+ *      unsigned char *ret_buf - buffer to store the data read from terminal
+ *      int length - length of the data
+ *    OUTPUTS:
+ *      none
+ *    RETURN:
+ *      the number of bytes read
+ */
+ int terminal_read(unsigned char *ret_buf, int length)
+ {
+     int copied = STARTING_POINT;
+     while (index == STARTING_POINT || buffer[index] != NEW_LINE)
+         ;
+     index++;
+     cli();
+     while (copied < length && copied < index)
+     {
+         ret_buf[copied] = buffer[copied];
+         copied++;
+     }
+     sti();
 
-void clear_buffer(){
-  buffer_ptr = 0;
-}
+     return copied;
+ }

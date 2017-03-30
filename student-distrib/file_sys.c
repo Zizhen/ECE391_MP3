@@ -1,104 +1,167 @@
 #include "file_sys.h"
 
-boot_block_t* boot_block;
+/* constants */
+#define FAILURE -1
+#define SUCCESS 0
+#define LEN_LIMIT 32
+#define FILE_N_LIMIT 63
+#define STARTING 0
 
-/* read_dentry_by_name
- *  input: file_name
- *         directory entry
- *  output: directory entry written with the file name
- *          file type and num_inode
- *  return: -1 on failure(non existent dile or invalid index)
- *          0 on success
+boot_block_t *boot_block;
+
+/*  int read_dentry_by_name(const int8_t* fname,dentry_t* dentry)
+ *  DESCRIPTION:
+ *      read files by name
+ *    INPUTS:
+ *      const int8_t* fname - pointer to a file name
+ *		dentry_t* dentry - pointer to diretory entry
+ *    OUTPUTS:
+ *      none
+ *    RETURN VALUE:
+ *      0 for SUCCESS, -1 for fail
  */
-int32_t read_dentry_by_name(const int8_t* fname, dentry_t* dentry){
-  int i,j;
-  int num_chars;
-  if(fname == NULL || dentry == NULL){
-    printf("NULL pointer!\n");
-    return -1;
-  }
+int read_dentry_by_name(const int8_t* fname,dentry_t* dentry)
+{
+    int num_char;
+    int i,j;
+	
+	/* check if file name is valid in length */
+    for(num_char=STARTING;fname[num_char]!=STARTING;num_char++);
+    if(num_char>LEN_LIMIT)
+    {
+        printf("too long file name!\n");
+        return FAILURE;
+    }
 
-  for(num_chars = 0; fname[num_chars]!=0; num_chars++){
-      if(num_chars > 32){
-        printf("file_name too long!\n");
-        return -1;
-      }
-  }
-
-  for(i = 0; i < 63; i ++){
-      if(strncmp(fname,boot_block->dentry[i].file_name,32) == 0){
-        for(j = 0; j < 32; j++){
-          dentry->file_name[j] = boot_block->dentry[i].file_name[j];
+	/* find the file matches the name and copy data*/
+    for(i=STARTING;i<FILE_N_LIMIT;i++)
+    {
+        if(!strncmp(boot_block->entries[i].file_name,fname,num_char))
+        {
+            for(j=STARTING;j<num_char;j++)
+            {
+                dentry->file_name[j]=boot_block->entries[i].file_name[j];
+            }
+            dentry->file_type=boot_block->entries[i].file_type;
+            dentry->inode_index=boot_block->entries[i].inode_index;
+            return SUCCESS;
         }
-        dentry->file_type = boot_block->dentry[i].file_type;
-        dentry->num_inode = boot_block->dentry[i].num_inode;
-        return 0;
-      }
-  }
-  printf("file not found!\n");
-  return -1;
+    }
+	
+	/* no file found */
+    printf("file not found!\n");
+    return FAILURE;
 }
 
-/* read_dentry_by_index
- *  input: index
- *         directory entry
- *  output: directory entry written with the file name
- *          file type and num_inode
- *  return: -1 on failure(non existent dile or invalid index)
- *          0 on success
+/*  int read_dentry_by_index(uint32_t index,dentry_t *dentry)
+ *  DESCRIPTION:
+ *      read files by index
+ *    INPUTS:
+ *      uint32_t index - index of directory entry
+ *		dentry_t* dentry - pointer to directory entry struct
+ *    OUTPUTS:
+ *      none
+ *    RETURN VALUE:
+ *      0 for SUCCESS, -1 for fail
  */
-int32_t read_dentry_by_index (uint32_t index, dentry_t* dentry){
-  int i;
-  if(dentry == NULL){
-    printf("NULL pointer!\n");
-    return -1;
-  }
-
-  if(index > 62){
-    printf("index not valid!\n");
-    return -1;
-  }
-
-  for(i = 0; i < 32; i++){
-    dentry->file_name[i] = boot_block->dentry[index].file_name[i];
-  }
-  dentry->file_type = boot_block->dentry[index].file_type;
-  dentry->num_inode = boot_block->dentry[index].num_inode;
-  return 0;
+int read_dentry_by_index(uint32_t index,dentry_t *dentry)
+{
+    int i;
+	/* invalid index */
+    if(index>=FILE_N_LIMIT)
+    {
+        printf("file not found!\n");
+        return FAILURE;
+    }
+	
+	/* find the file matches the index and copy data*/
+    for(i=STARTING;i<LEN_LIMIT;i++)
+    {
+        dentry->file_name[i]=boot_block->entries[index].file_name[i];
+    }
+    dentry->file_type=boot_block->entries[index].file_type;
+    dentry->inode_index=boot_block->entries[index].inode_index;
+    return SUCCESS;
 }
 
-/* read_data
- *  input: inode  -- to find the file
- *         offset -- starting point to read
- *         buffer -- place the bytes read there
- *         length -- num of bytes to read
- *  output: directory entry written with the file name
- *          file type and num_inode
- *  return: -1 on failure(non existent dile or invalid index)
- *          0 on success
+/*  int read_data(uint32_t inode, uint32_t offset,int8_t *buf,uint32_t length)
+ *  DESCRIPTION:
+ *      read data from a inode 
+ *    INPUTS:
+ *      uint32_t inode - index node
+ *      uint32_t offset - offset for the data block
+ *		int8_t *buf - data reading buffer
+ *		uint32_t length - length of data
+ *    OUTPUTS:
+ *      none
+ *    RETURN VALUE:
+ *      0 for SUCCESS, -1 for fail
  */
-int32_t read_data (uint32_t inode, uint32_t offset, uint8_t* buf, uint32_t length){
-  int i,j,copy_index;
-  inode_t *inode_addr = (inode_t *)(boot_block+inode+1);
-  uint8_t *data_start = (uint8_t *)(boot_block+boot_block->num_inode+1);
-  uint8_t *data;
-  if(buf == NULL){
-    return -1;
-  }
-  i=offset/KB4;//index for number of data block to start reading from
-  j=offset%KB4;//index for number of bytes in the starting data block to start with
-  for(copy_index = 0; copy_index < length; copy_index++){
-    if(inode_addr->data_block[i]>boot_block->num_data_block){
-      printf("invalid block num!\n");
-      return -1;
+int read_data(uint32_t inode, uint32_t offset,int8_t *buf,uint32_t length)
+{
+    inode_t *inode_addr=(inode_t *)(boot_block+inode+1);
+    int copied,i,j;
+    uint8_t *data_start=(uint8_t *)(boot_block+boot_block->num_inodes+1);
+    uint8_t *data;
+    i=offset/KB4;
+    j=offset%KB4;
+	/* check for invalid offset */
+    if(offset>inode_addr->length)
+    {
+        printf("offset too big!\n");
+        return FAILURE;
     }
-    data = data_start + inode_addr->data_block[i]*KB4;
-    *(buf+copy_index) = *(data+j);
-    j++;
-    if(j>KB4){
-      j = 0;
-      i++;
+    for(copied=STARTING;copied<length&&copied<inode_addr->length;copied++)
+    {
+        if(inode_addr->data_block_num[i]>boot_block->num_blocks)
+        {
+            printf("bad data block number\n");
+            return FAILURE;
+        }
+        data=data_start+inode_addr->data_block_num[i]*KB4;
+        *(buf+copied)=*(data+j);
+        j++;
+        if(j>=KB4)
+        {
+            j=STARTING;
+            i++;
+        }
     }
-  }
-  return copy_index;
+    return copied;
+}
+
+/*  int directory_read(uint32_t offset,int8_t *buf,uint32_t length)
+ *  DESCRIPTION:
+ *      read a directory
+ *    INPUTS:
+ *      uint32_t offset - offset for the directory
+ *		int8_t *buf - buffer for directory reading
+ *		uint32_t length - length of the data
+ *    OUTPUTS:
+ *      none
+ *    RETURN VALUE:
+ *      0 for SUCCESS, or number of data read
+ */
+int directory_read(uint32_t offset,int8_t *buf,uint32_t length)
+{
+    int entry_index=STARTING,name_index=STARTING;
+    int copied=STARTING;
+    entry_index=entry_index+offset/LEN_LIMIT;
+    name_index=name_index+offset%LEN_LIMIT;
+    while(copied<length)
+    {
+        if(entry_index>=boot_block->num_dentries)
+        {
+            return SUCCESS;
+        }
+        *(buf+copied)=boot_block->entries[entry_index].file_name[name_index];
+        copied++;
+        name_index++;
+        if(name_index>=LEN_LIMIT)
+        {
+            entry_index++;
+            name_index=STARTING;
+        }
+    }
+    return copied;
 }

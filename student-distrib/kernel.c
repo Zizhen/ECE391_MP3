@@ -11,6 +11,7 @@
 #include "rtc.h"
 #include "paging.h"
 #include "file_sys.h"
+#include "mp3_2_test.h"
 
 /* Macros. */
 /* Check if the bit BIT in FLAGS is set. */
@@ -23,6 +24,8 @@
 void entry(unsigned long magic, unsigned long addr)
 {
     multiboot_info_t *mbi;
+//    dentry_t dentry;
+//    uint8_t buffer[2001];
 
     /* Clear the screen. */
     clear();
@@ -58,7 +61,7 @@ void entry(unsigned long magic, unsigned long addr)
 	int mod_count = 0;
 	int i;
 	module_t *mod = (module_t *)mbi->mods_addr;
-  boot_block=(boot_block_t *)mod->mod_start;
+    boot_block=(boot_block_t *)mod->mod_start;
 
 	while (mod_count < mbi->mods_count)
 	{
@@ -177,12 +180,13 @@ void entry(unsigned long magic, unsigned long addr)
     printf("Enabling Interrupts\n");
     sti();
 
+
     /* testing exception and interrupts */
 
     /* enable key board interrupt */
     enable_irq(KEYBOARD_IRQ);
     /* enable rtc interrupt */
-    //enable_irq(RTC_IRQ);
+//    enable_irq(RTC_IRQ);
 
     /* dereferencing NULL pointer */
 //	 int *b=NULL;
@@ -190,8 +194,26 @@ void entry(unsigned long magic, unsigned long addr)
 
     /* divide by zero */
 //    int a=5/0;
+      test_init();
 
+//    rtc_write(64);
+//    rtc_read();
+//    list_file();
 
+//    read_file_by_name("shell");
+//
+//    read_file_by_index(10);
+/*
+    i=read_dentry_by_name("frame0.txt",&dentry);
+    for(j=0;j<32;j++)
+    {
+        putc(dentry.file_name[j]);
+    }
+    putc('\n');
+
+    read_data(dentry.inode_index,0,buffer,2000);
+    puts(buffer);
+*/
     /* Execute the first program (`shell') ... */
 
     /* Spin (nicely, so we don't chew up cycles) */
